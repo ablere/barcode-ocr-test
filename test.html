@@ -2,13 +2,31 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>條碼與 OCR 解析</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
+    <style>
+        video, canvas {
+            display: block;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none; /* 確保 overlay canvas 不影響 video 點擊 */
+        }
+    </style>
 </head>
 <body>
     <h2>使用相機拍照並解析條碼或文字</h2>
-    <video id="camera" autoplay playsinline></video>
+    <div style="position: relative;">
+        <video id="camera" autoplay playsinline></video>
+        <canvas id="overlay"></canvas> <!-- 藍色框繪制的 canvas -->
+    </div>
     <canvas id="snapshot" style="display: none;"></canvas>
     <button onclick="captureImage()">拍照解析</button>
     
@@ -17,18 +35,20 @@
 
     <script>
         async function startCamera() {
+            const video = document.getElementById("camera");
+            const overlay = document.getElementById("overlay");
+
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
                 video.srcObject = stream;
 
-                // 新增：同步調整 overlay canvas 的大小
-                const overlay = document.getElementById("overlay");
                 video.addEventListener("loadedmetadata", () => {
                     overlay.width = video.videoWidth;
                     overlay.height = video.videoHeight;
                 });
             } catch (error) {
                 console.error("相機啟動失敗:", error);
+                alert("無法啟用相機，請檢查權限或使用支援的瀏覽器。");
             }
         }
 
@@ -45,9 +65,9 @@
         }
 
         function processBarcode(canvas) {
-             const overlay = document.getElementById("overlay"); // 新增
-            const overlayContext = overlay.getContext("2d"); // 新增
-            overlayContext.clearRect(0, 0, overlay.width, overlay.height); // 清空 overlay canvas
+            const overlay = document.getElementById("overlay");
+            const overlayContext = overlay.getContext("2d");
+            overlayContext.clearRect(0, 0, overlay.width, overlay.height); // 清除舊框線
 
             Quagga.decodeSingle({
                 src: canvas.toDataURL(),
@@ -58,7 +78,7 @@
                     document.getElementById("codeField").value = result.codeResult.code;
                     console.log("條碼解析成功:", result.codeResult.code);
 
-                    // 新增：繪製藍色方框
+                    // 繪製藍色框
                     if (result.boxes && result.boxes.length > 0) {
                         const box = result.boxes[0];
                         overlayContext.strokeStyle = "blue";
