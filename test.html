@@ -105,8 +105,8 @@
           
           Quagga.decodeSingle({
               src: canvas.toDataURL(),
-              inputStream: { size: 800 },
-              decoder: { readers: ["ean_8", "ean_reader"] }
+              inputStream: { size: 1280 },
+              decoder: { readers: ["ean_8_reader", "ean_13_reader"] }
           }, function(result, err) {
               if (err) {
                   console.error("條碼解析錯誤: ", err);
