@@ -95,39 +95,46 @@
             processBarcode(canvas);
         }
 
-        function processBarcode(canvas) {
-            const overlay = document.getElementById("overlay");
-            const overlayContext = overlay.getContext("2d");
-            overlayContext.clearRect(0, 0, overlay.width, overlay.height);
-
-            Quagga.decodeSingle({
-                src: canvas.toDataURL(),
-                inputStream: { size: 800 },
-                decoder: { readers: ["ean_8", "ean_reader"] }
-            }, function(result) {
-                if (result && result.codeResult) {
-                    document.getElementById("codeField").value = result.codeResult.code;
-                    console.log("條碼解析成功: " + result.codeResult.code);
-
-                    // 繪製藍色框
-                    if (result.boxes && result.boxes.length > 0) {
-                        const box = result.boxes[0];
-                        overlayContext.strokeStyle = "blue";
-                        overlayContext.lineWidth = 2;
-                        overlayContext.beginPath();
-                        overlayContext.moveTo(box[0][0], box[0][1]);
-                        for (let i = 1; i < box.length; i++) {
-                            overlayContext.lineTo(box[i][0], box[i][1]);
-                        }
-                        overlayContext.closePath();
-                        overlayContext.stroke();
-                    }
-                } else {
-                    console.log("未找到條碼，改用 OCR 解析...");
-                    processOCR(canvas);
+      function processBarcode(canvas) {
+          const overlay = document.getElementById("overlay");
+          const overlayContext = overlay.getContext("2d");
+          overlayContext.clearRect(0, 0, overlay.width, overlay.height);
+          
+          console.log("開始條碼解析，準備傳遞參數給 Quagga...");
+          Quagga.decodeSingle({
+              src: canvas.toDataURL(),
+              inputStream: { size: 800 },
+              decoder: { readers: ["ean_8", "ean_reader"] }
+          }, function(result) {
+              console.log("條碼解析回調已執行...");
+              if (result) {
+                  console.log("條碼解析結果: ", result);
+              } else {
+                  console.log("條碼解析失敗，未找到條碼！");
+              }
+              if (result && result.codeResult) {
+                  document.getElementById("codeField").value = result.codeResult.code;
+                  console.log("條碼解析成功: " + result.codeResult.code);
+            // 繪製藍色框
+            if (result.boxes && result.boxes.length > 0) {
+                console.log("繪製條碼框...");
+                const box = result.boxes[0];
+                overlayContext.strokeStyle = "blue";
+                overlayContext.lineWidth = 2;
+                overlayContext.beginPath();
+                overlayContext.moveTo(box[0][0], box[0][1]);
+                for (let i = 1; i < box.length; i++) {
+                    overlayContext.lineTo(box[i][0], box[i][1]);
                 }
-            });
+                overlayContext.closePath();
+                overlayContext.stroke();
+            }
+        } else {
+            console.log("未找到條碼，改用 OCR 解析...");
+            processOCR(canvas);
         }
+    });
+}
 
         function processOCR(canvas) {
             console.log("開始進行 OCR 解析...");
