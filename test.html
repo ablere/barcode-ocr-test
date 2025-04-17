@@ -101,11 +101,16 @@
           overlayContext.clearRect(0, 0, overlay.width, overlay.height);
           
           console.log("開始條碼解析，準備傳遞參數給 Quagga...");
+          console.log("影像解析大小: ", canvas.width, canvas.height);
+          
           Quagga.decodeSingle({
               src: canvas.toDataURL(),
               inputStream: { size: 800 },
               decoder: { readers: ["ean_8", "ean_reader"] }
-          }, function(result) {
+          }, function(result, err) {
+              if (err) {
+                  console.error("條碼解析錯誤: ", err);
+              }
               console.log("條碼解析回調已執行...");
               if (result) {
                   console.log("條碼解析結果: ", result);
