@@ -17,7 +17,16 @@
             position: absolute;
             top: 0;
             left: 0;
-            pointer-events: none; /* 確保 overlay canvas 不影響 video 點擊 */
+            pointer-events: none;
+        }
+        #log {
+            white-space: pre-wrap;
+            background: #f0f0f0;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            margin: 10px;
         }
     </style>
 </head>
@@ -25,45 +34,55 @@
     <h2>使用相機拍照並解析條碼或文字</h2>
     <div style="position: relative;">
         <video id="camera" autoplay playsinline></video>
-        <canvas id="overlay"></canvas> <!-- 藍色框繪制的 canvas -->
+        <canvas id="overlay"></canvas>
     </div>
     <canvas id="snapshot" style="display: none;"></canvas>
     <button onclick="captureImage()">拍照解析</button>
     
     <h3>解析結果：</h3>
     <input type="text" id="codeField" placeholder="自動填入材料代碼" readonly>
-    <div id="log" style="white-space: pre-wrap; background: #f0f0f0; padding: 10px; max-height: 200px; overflow-y: auto;"></div>
+    <h3>執行日誌：</h3>
+    <div id="log"></div> <!-- 新增：日誌區域 -->
+
     <script>
+        // 覆寫 console.log 和 console.error，將訊息打印到日誌區域
         const logDiv = document.getElementById("log");
         function logToPage(message) {
-            logDiv.textContent += message + "\n";
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight; // 滾動到最新日誌
         }
+
         console.log = function(message) {
             logToPage("LOG: " + message);
         };
+
         console.error = function(message) {
             logToPage("ERROR: " + message);
         };
-        
-        async function startCamera() {
-            const video = document.getElementById("camera");
-            const overlay = document.getElementById("overlay");
 
+        async function startCamera() {
             try {
+                console.log("開始啟動相機...");
+                const video = document.getElementById("camera");
+                const overlay = document.getElementById("overlay");
+
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
                 video.srcObject = stream;
 
                 video.addEventListener("loadedmetadata", () => {
                     overlay.width = video.videoWidth;
                     overlay.height = video.videoHeight;
+                    console.log("相機已啟動，解析畫面大小為: " + video.videoWidth + "x" + video.videoHeight);
                 });
             } catch (error) {
-                console.error("相機啟動失敗:", error);
+                console.error("相機啟動失敗: " + error.name + " - " + error.message);
                 alert("無法啟用相機，請檢查權限或使用支援的瀏覽器。");
             }
         }
 
         function captureImage() {
+            console.log("拍照並捕捉影像...");
             const video = document.getElementById("camera");
             const canvas = document.getElementById("snapshot");
             const context = canvas.getContext("2d");
@@ -72,13 +91,14 @@
             canvas.height = video.videoHeight;
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+            console.log("影像已捕捉，開始條碼解析...");
             processBarcode(canvas);
         }
 
         function processBarcode(canvas) {
             const overlay = document.getElementById("overlay");
             const overlayContext = overlay.getContext("2d");
-            overlayContext.clearRect(0, 0, overlay.width, overlay.height); // 清除舊框線
+            overlayContext.clearRect(0, 0, overlay.width, overlay.height);
 
             Quagga.decodeSingle({
                 src: canvas.toDataURL(),
@@ -87,7 +107,7 @@
             }, function(result) {
                 if (result && result.codeResult) {
                     document.getElementById("codeField").value = result.codeResult.code;
-                    console.log("條碼解析成功:", result.codeResult.code);
+                    console.log("條碼解析成功: " + result.codeResult.code);
 
                     // 繪製藍色框
                     if (result.boxes && result.boxes.length > 0) {
@@ -103,23 +123,24 @@
                         overlayContext.stroke();
                     }
                 } else {
-                    console.log("未找到條碼，改用 OCR 解析");
+                    console.log("未找到條碼，改用 OCR 解析...");
                     processOCR(canvas);
                 }
             });
         }
 
         function processOCR(canvas) {
+            console.log("開始進行 OCR 解析...");
             Tesseract.recognize(
                 canvas.toDataURL(),
                 "eng",
                 {
-                    logger: m => console.log(m)
+                    logger: m => logToPage("OCR Logger: " + JSON.stringify(m))
                 }
             ).then(({ data }) => {
                 document.getElementById("codeField").value = data.text.trim();
-                console.log("OCR 解析結果:", data.text);
-            }).catch(error => console.error("OCR 解析失敗:", error));
+                console.log("OCR 解析結果: " + data.text);
+            }).catch(error => console.error("OCR 解析失敗: " + error.message));
         }
 
         window.onload = startCamera;
