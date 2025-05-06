@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>WebRTC 相機預覽 - 只顯示中心區域</title>
+</head>
+<body>
+    <video id="video" autoplay playsinline style="display:none;"></video>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        // 啟動相機，請求較高解析度
+        navigator.mediaDevices.getUserMedia({
+            video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            }
+        }).then(stream => {
+            const video = document.getElementById("video");
+            video.srcObject = stream;
+            video.play();
+
+            video.addEventListener("loadedmetadata", () => {
+                startProcessing(video);
+            });
+        }).catch(error => {
+            console.error("相機存取失敗:", error);
+        });
+
+        function startProcessing(video) {
+            const canvas = document.getElementById("canvas");
+            const ctx = canvas.getContext("2d");
+
+            canvas.width = 640;
+            canvas.height = 480;
+
+            function drawFrame() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 塗黑所有區域
+                ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // 計算中心區域位置
+                const cropWidth = 200;
+                const cropHeight = 150;
+                const x = (canvas.width - cropWidth) / 2;
+                const y = (canvas.height - cropHeight) / 2;
+
+                // 顯示中心區域
+                ctx.clearRect(x, y, cropWidth, cropHeight);
+                ctx.drawImage(video, x, y, cropWidth, cropHeight, x, y, cropWidth, cropHeight);
+
+                requestAnimationFrame(drawFrame);
+            }
+            drawFrame();
+        }
+    </script>
+</body>
+</html>
