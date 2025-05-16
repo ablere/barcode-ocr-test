@@ -2,19 +2,17 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>WebRTC 相機預覽 - 只顯示中心區域</title>
+    <title>WebRTC 相機預覽 - 只顯示中心區域並執行 OCR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
 </head>
 <body>
     <video id="video" autoplay playsinline style="display:none;"></video>
     <canvas id="canvas"></canvas>
+    <p id="ocr-result">OCR 結果: </p>
 
     <script>
-        // 啟動相機，請求較高解析度
         navigator.mediaDevices.getUserMedia({
-            video: {
-                width: { ideal: 640 },
-                height: { ideal: 480 }
-            }
+            video: { width: { ideal: 640 }, height: { ideal: 480 } }
         }).then(stream => {
             const video = document.getElementById("video");
             video.srcObject = stream;
@@ -36,24 +34,39 @@
 
             function drawFrame() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                // 塗黑所有區域
                 ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                // 計算中心區域位置
                 const cropWidth = 200;
                 const cropHeight = 150;
                 const x = (canvas.width - cropWidth) / 2;
                 const y = (canvas.height - cropHeight) / 2;
 
-                // 顯示中心區域
                 ctx.clearRect(x, y, cropWidth, cropHeight);
                 ctx.drawImage(video, x, y, cropWidth, cropHeight, x, y, cropWidth, cropHeight);
+
+                processOCR(canvas, x, y, cropWidth, cropHeight);
 
                 requestAnimationFrame(drawFrame);
             }
             drawFrame();
+        }
+
+        function processOCR(canvas, x, y, width, height) {
+            const tempCanvas = document.createElement("canvas");
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            const tempCtx = tempCanvas.getContext("2d");
+
+            tempCtx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
+
+            Tesseract.recognize(tempCanvas.toDataURL(), 'eng', {
+                logger: (m) => console.log(m)
+            }).then(({ data: { text } }) => {
+                document.getElementById("ocr-result").innerText = "OCR 結果: " + text;
+            }).catch(error => {
+                console.error("OCR 解析失敗:", error);
+            });
         }
     </script>
 </body>
