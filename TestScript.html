@@ -2,36 +2,28 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>WebRTC 相機預覽 - 選擇鏡頭 & OCR 分析</title>
+    <title>WebRTC 相機預覽 - 分析 & 重新取像</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
 </head>
 <body>
-    <label for="camera-select">選擇鏡頭：</label>
-    <select id="camera-select">
-        <option value="user">前鏡頭</option>
-        <option value="environment">後鏡頭</option>
-    </select>
-    <button id="start-button">開啟相機</button>
-    
     <video id="video" autoplay playsinline style="display:none;"></video>
     <canvas id="canvas"></canvas>
     <p id="ocr-result">OCR 結果: </p>
+    <button id="analyze-button">分析</button>
     <button id="retry-button" style="display: none;">重新取像</button>
 
     <script>
         let isProcessing = false;
-        const startButton = document.getElementById("start-button");
+        let isCapturing = true; // 控制是否持續取像
+        const analyzeButton = document.getElementById("analyze-button");
         const retryButton = document.getElementById("retry-button");
-        const cameraSelect = document.getElementById("camera-select");
 
         function startCamera() {
-            const facingMode = cameraSelect.value; // 取得使用者選擇的鏡頭
-
             navigator.mediaDevices.getUserMedia({
                 video: { 
                     width: { ideal: 640 }, 
                     height: { ideal: 480 },
-                    facingMode: facingMode // 設定前鏡頭或後鏡頭
+                    facingMode: { exact: "environment" } // 指定使用後鏡頭
                 }
             }).then(stream => {
                 const video = document.getElementById("video");
@@ -39,19 +31,33 @@
                 video.play();
 
                 video.addEventListener("loadedmetadata", () => {
-                    isProcessing = true;
-                    retryButton.style.display = "none";
+                    isCapturing = true; // 啟用攝影
+                    retryButton.style.display = "none"; // 隱藏重試按鈕
                     startProcessing(video);
                 });
             }).catch(error => {
                 console.error("相機存取失敗:", error);
-                alert("無法啟用相機，請確認瀏覽器權限或設備支援。");
+                alert("無法使用後鏡頭，系統將改用預設相機。");
+                startCameraFallback(); // 改用預設相機
+            });
+        }
+
+        function startCameraFallback() {
+            navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+                const video = document.getElementById("video");
+                video.srcObject = stream;
+                video.play();
+                video.addEventListener("loadedmetadata", () => {
+                    isCapturing = true;
+                    retryButton.style.display = "none";
+                    startProcessing(video);
+                });
+            }).catch(error => {
+                console.error("相機存取完全失敗:", error);
             });
         }
 
         function startProcessing(video) {
-            if (!isProcessing) return;
-
             const canvas = document.getElementById("canvas");
             const ctx = canvas.getContext("2d");
 
@@ -59,7 +65,7 @@
             canvas.height = 480;
 
             function drawFrame() {
-                if (!isProcessing) return;
+                if (!isCapturing) return; // 如果 OCR 進行中則停止取像
                 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
@@ -73,13 +79,20 @@
                 ctx.clearRect(x, y, cropWidth, cropHeight);
                 ctx.drawImage(video, x, y, cropWidth, cropHeight, x, y, cropWidth, cropHeight);
 
-                processOCR(canvas, x, y, cropWidth, cropHeight);
+                requestAnimationFrame(drawFrame);
             }
 
             drawFrame();
         }
 
-        function processOCR(canvas, x, y, width, height) {
+        function processOCR() {
+            isCapturing = false; // 停止取像，等待 OCR
+            const canvas = document.getElementById("canvas");
+            const x = (canvas.width - 200) / 2;
+            const y = (canvas.height - 150) / 2;
+            const width = 200;
+            const height = 150;
+
             const tempCanvas = document.createElement("canvas");
             tempCanvas.width = width;
             tempCanvas.height = height;
@@ -91,15 +104,23 @@
                 logger: (m) => console.log(m)
             }).then(({ data: { text } }) => {
                 document.getElementById("ocr-result").innerText = "OCR 結果: " + text;
-                isProcessing = false;
                 retryButton.style.display = "block";
+                analyzeButton.style.display = "none"; // 隱藏分析按鈕
             }).catch(error => {
                 console.error("OCR 解析失敗:", error);
             });
         }
 
-        startButton.addEventListener("click", startCamera);
-        retryButton.addEventListener("click", startCamera);
+        analyzeButton.addEventListener("click", processOCR);
+        retryButton.addEventListener("click", () => {
+            isCapturing = true; // 重新啟動影像捕捉
+            document.getElementById("ocr-result").innerText = "OCR 結果: ";
+            retryButton.style.display = "none";
+            analyzeButton.style.display = "block";
+            startCamera();
+        });
+
+        startCamera(); // 網頁載入後立即啟動後鏡頭
     </script>
 </body>
 </html>
