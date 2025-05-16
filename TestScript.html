@@ -2,25 +2,36 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>WebRTC 相機預覽 - OCR & 後鏡頭</title>
+    <title>WebRTC 相機預覽 - 選擇鏡頭 & OCR 分析</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
 </head>
 <body>
+    <label for="camera-select">選擇鏡頭：</label>
+    <select id="camera-select">
+        <option value="user">前鏡頭</option>
+        <option value="environment">後鏡頭</option>
+    </select>
+    <button id="start-button">開啟相機</button>
+    
     <video id="video" autoplay playsinline style="display:none;"></video>
     <canvas id="canvas"></canvas>
     <p id="ocr-result">OCR 結果: </p>
     <button id="retry-button" style="display: none;">重新取像</button>
 
     <script>
-        let isProcessing = true;
+        let isProcessing = false;
+        const startButton = document.getElementById("start-button");
         const retryButton = document.getElementById("retry-button");
+        const cameraSelect = document.getElementById("camera-select");
 
         function startCamera() {
+            const facingMode = cameraSelect.value; // 取得使用者選擇的鏡頭
+
             navigator.mediaDevices.getUserMedia({
                 video: { 
                     width: { ideal: 640 }, 
                     height: { ideal: 480 },
-                    facingMode: { exact: "environment" } // 嘗試選擇後鏡頭
+                    facingMode: facingMode // 設定前鏡頭或後鏡頭
                 }
             }).then(stream => {
                 const video = document.getElementById("video");
@@ -33,24 +44,8 @@
                     startProcessing(video);
                 });
             }).catch(error => {
-                console.error("相機存取失敗，可能是不支援後鏡頭:", error);
-                alert("無法使用後鏡頭，系統將改用預設相機。");
-                startCameraFallback(); // 改用預設相機
-            });
-        }
-
-        function startCameraFallback() {
-            navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-                const video = document.getElementById("video");
-                video.srcObject = stream;
-                video.play();
-                video.addEventListener("loadedmetadata", () => {
-                    isProcessing = true;
-                    retryButton.style.display = "none";
-                    startProcessing(video);
-                });
-            }).catch(error => {
-                console.error("相機存取完全失敗:", error);
+                console.error("相機存取失敗:", error);
+                alert("無法啟用相機，請確認瀏覽器權限或設備支援。");
             });
         }
 
@@ -103,13 +98,8 @@
             });
         }
 
-        retryButton.addEventListener("click", () => {
-            isProcessing = true;
-            document.getElementById("ocr-result").innerText = "OCR 結果: ";
-            startCamera();
-        });
-
-        startCamera();
+        startButton.addEventListener("click", startCamera);
+        retryButton.addEventListener("click", startCamera);
     </script>
 </body>
 </html>
