@@ -110,7 +110,7 @@
           
           Quagga.decodeSingle({
               src: canvas.toDataURL(),
-              inputStream: { size: 1280 },
+              inputStream: { size: 800 },
               decoder: { readers: ["ean_8_reader", "ean_13_reader"] }
           }, function(result, err) {
               if (err) {
