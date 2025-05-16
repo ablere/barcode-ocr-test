@@ -99,7 +99,7 @@
           const overlay = document.getElementById("overlay");
           const overlayContext = overlay.getContext("2d");
           overlayContext.clearRect(0, 0, overlay.width, overlay.height);
-          
+          console.log(window.Quagga); // 確保 QuaggaJS 已載入
           console.log("開始條碼解析，準備傳遞參數給 Quagga...");
           console.log("影像解析大小: ", canvas.width, canvas.height);
           
