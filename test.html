@@ -87,9 +87,9 @@
             const canvas = document.getElementById("snapshot");
             const context = canvas.getContext("2d");
 
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            //canvas.width = video.videoWidth;
+            //canvas.height = video.videoHeight;
+            //context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
             console.log("影像已捕捉，開始條碼解析...");
             processBarcode(canvas);
