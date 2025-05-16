@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>WebRTC 相機預覽 - OCR & 重新取像</title>
+    <title>WebRTC 相機預覽 - OCR & 後鏡頭</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
 </head>
 <body>
@@ -12,12 +12,16 @@
     <button id="retry-button" style="display: none;">重新取像</button>
 
     <script>
-        let isProcessing = true; // 控制 OCR 運行狀態
+        let isProcessing = true;
         const retryButton = document.getElementById("retry-button");
 
         function startCamera() {
             navigator.mediaDevices.getUserMedia({
-                video: { width: { ideal: 640 }, height: { ideal: 480 } }
+                video: { 
+                    width: { ideal: 640 }, 
+                    height: { ideal: 480 },
+                    facingMode: { exact: "environment" } // 嘗試選擇後鏡頭
+                }
             }).then(stream => {
                 const video = document.getElementById("video");
                 video.srcObject = stream;
@@ -25,16 +29,33 @@
 
                 video.addEventListener("loadedmetadata", () => {
                     isProcessing = true;
-                    retryButton.style.display = "none"; // 隱藏重試按鈕
+                    retryButton.style.display = "none";
                     startProcessing(video);
                 });
             }).catch(error => {
-                console.error("相機存取失敗:", error);
+                console.error("相機存取失敗，可能是不支援後鏡頭:", error);
+                alert("無法使用後鏡頭，系統將改用預設相機。");
+                startCameraFallback(); // 改用預設相機
+            });
+        }
+
+        function startCameraFallback() {
+            navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+                const video = document.getElementById("video");
+                video.srcObject = stream;
+                video.play();
+                video.addEventListener("loadedmetadata", () => {
+                    isProcessing = true;
+                    retryButton.style.display = "none";
+                    startProcessing(video);
+                });
+            }).catch(error => {
+                console.error("相機存取完全失敗:", error);
             });
         }
 
         function startProcessing(video) {
-            if (!isProcessing) return; // 停止處理
+            if (!isProcessing) return;
 
             const canvas = document.getElementById("canvas");
             const ctx = canvas.getContext("2d");
@@ -43,7 +64,7 @@
             canvas.height = 480;
 
             function drawFrame() {
-                if (!isProcessing) return; // 停止處理
+                if (!isProcessing) return;
                 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
@@ -75,16 +96,16 @@
                 logger: (m) => console.log(m)
             }).then(({ data: { text } }) => {
                 document.getElementById("ocr-result").innerText = "OCR 結果: " + text;
-                isProcessing = false; // 停止 OCR 處理
-                retryButton.style.display = "block"; // 顯示重試按鈕
+                isProcessing = false;
+                retryButton.style.display = "block";
             }).catch(error => {
                 console.error("OCR 解析失敗:", error);
             });
         }
 
         retryButton.addEventListener("click", () => {
-            isProcessing = true; // 重新啟動 OCR 處理
-            document.getElementById("ocr-result").innerText = "OCR 結果: "; // 清除舊結果
+            isProcessing = true;
+            document.getElementById("ocr-result").innerText = "OCR 結果: ";
             startCamera();
         });
 
