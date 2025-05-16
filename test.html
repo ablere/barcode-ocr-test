@@ -101,9 +101,9 @@
           overlayContext.clearRect(0, 0, overlay.width, overlay.height);
           if (!window.Quagga) {
               console.error("QuaggaJS 未正確載入！");
-              console.log("Canvas 資料 URL: ", canvas.toDataURL());
               return;
           }
+          console.log("Canvas 資料 URL: ", canvas.toDataURL());
           console.log(window.Quagga); // 確保 QuaggaJS 已載入
           console.log("開始條碼解析，準備傳遞參數給 Quagga...");
           console.log("影像解析大小: ", canvas.width, canvas.height);
