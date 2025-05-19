@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>WebRTC 相機預覽 - 分析 & 重新取像</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>-->
+    <script src="/js/tesseract.min.js"></script>
 </head>
 <body>
     <video id="video" autoplay playsinline style="display:none;"></video>
@@ -102,6 +103,8 @@
             tempCtx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
 
             Tesseract.recognize(tempCanvas.toDataURL(), 'eng', {
+                corePath: '/js/tesseract-core.js',  // 本地核心檔案
+                workerPath: '/js/tesseract-worker.js', // 本地 Worker 檔案
                 tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-+=',
                 psm: 6, // 適合單行文字
                 logger: (m) => console.log(m)
