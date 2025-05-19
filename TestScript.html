@@ -71,8 +71,8 @@
                 ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                const cropWidth = 200;
-                const cropHeight = 150;
+                const cropWidth = 400;
+                const cropHeight = 300;
                 const x = (canvas.width - cropWidth) / 2;
                 const y = (canvas.height - cropHeight) / 2;
 
@@ -97,10 +97,13 @@
             tempCanvas.width = width;
             tempCanvas.height = height;
             const tempCtx = tempCanvas.getContext("2d");
+            tempCtx.filter = "grayscale(100%) contrast(150%)";
 
             tempCtx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
 
             Tesseract.recognize(tempCanvas.toDataURL(), 'eng', {
+                tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-+=',
+                psm: 6, // 適合單行文字
                 logger: (m) => console.log(m)
             }).then(({ data: { text } }) => {
                 document.getElementById("ocr-result").innerText = "OCR 結果: " + text;
